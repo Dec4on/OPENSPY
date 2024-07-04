@@ -506,16 +506,21 @@ def ruins():
             if input == '/b':
                 return
             continue
-
+        
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.print('Ruins', TextStyle.HEADER)
 
         for town in ruined_towns:
             TextPrinter.print('--------', TextStyle.GRAY)
+            # Get town coordinates to nearest whole number
+            x_coord = str(round(town['coordinates']['spawn']['x']))
+            y_coord = str(round(town['coordinates']['spawn']['y']))
+            z_coord = str(round(town['coordinates']['spawn']['z']))
             print(BOLD + 'Town: ' + ENDC + town['name'])
             print(BOLD + 'Chunks: ' + ENDC + str(town['stats']['numTownBlocks']))
-            print(BOLD + 'Ruined At: ' + ENDC + Utilities.epochToDatetime(town['timestamps']['ruinedAt']))
+            print(BOLD + 'Ruined At: ' + ENDC + Utilities.epochToDatetime(town['timestamps']['ruinedAt'])) 
+            print(BOLD + 'Coordinates: ' + ENDC + f'X:{x_coord} Y:{y_coord} Z:{z_coord}')
             
         input = TextPrinter.input().strip()
         if input == '/b':

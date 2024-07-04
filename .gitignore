@@ -1,0 +1,3 @@
+# Files you can tell git to not push
+*.db 
+*.pyc
