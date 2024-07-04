@@ -14,6 +14,8 @@ To keep the data you collected even after updating to a newer version, do not re
 # EXE
 Use the OPENSPY.exe file to quickly start the program without
 opening command line and running the python code.
+The EXE is created using PyInstaller, you can install it using ``pip install pyinstaller``.
+Use this command to create the .exe file ``python -m PyInstaller main.py --onefile``.
 
 # MORE
 https://discord.gg/hq7XFk3cA9
