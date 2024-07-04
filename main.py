@@ -661,7 +661,7 @@ By vncet                                            V{VERSION}
             '/pirate        Find towns you can steal',
             '/newday        Falling and ruined towns next newday',
             '/ruins         Find ruined towns to loot',
-            '/goto          Find the nearest route to a town/nation',
+            '/goto          Find the best route to a town/nation',
             '/victims       Find players in the wilderness',
             '/overclaim     Towns that you can steal land from',
             '/online        Online players in town or nation',
