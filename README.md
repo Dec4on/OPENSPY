@@ -10,3 +10,6 @@ To keep the data you collected even after updating to a newer version, do not re
 3. Open the command prompt and navigate to the OPENSPY folder.
 4. Execute this command ``pip install -r requirements.txt``, this will install the necessary libraries.
 5. Execute this command after it finished installing ``python main.py``.
+
+# MORE
+https://discord.gg/hq7XFk3cA9
