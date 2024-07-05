@@ -17,12 +17,25 @@ class Generate:
             import PyInstaller.__main__ # type: ignore
 
         TextPrinter.print("Generating executable file...", TextStyle.BLUE)
-        PyInstaller.__main__.run([
-            'main.py',
-            '--onefile',
-            '--name=openspy',
-            '--clean',
-            '--distpath', '',
-            '--log-level', 'DEPRECATION'
-        ])
+        file_path = os.path.join('./openspy.ico')
+        if os.path.isfile(file_path):
+            PyInstaller.__main__.run([
+                'main.py',
+                '--onefile',
+                '--name=openspy',
+                '--clean',
+                '--distpath', '',
+                '--log-level', 'DEPRECATION',
+                f'--icon={file_path}'
+            ])
+        else:
+            PyInstaller.__main__.run([
+                'main.py',
+                '--onefile',
+                '--name=openspy',
+                '--clean',
+                '--distpath', '',
+                '--log-level', 'DEPRECATION'
+            ])
+            
         TextPrinter.print("openspy.exe has been successfully generated.", TextStyle.GREEN)
