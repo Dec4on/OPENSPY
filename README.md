@@ -1,6 +1,6 @@
 # OPENSPY
 A command line python application that uses the Earthmc API.
-OPENSPY is easy to use, fast and reliable.
+OpenSpy is easy to use, fast and reliable.
 Make sure to keep the app open as much as possible, it collects player data while it's open.
 To keep the data you collected even after updating to a newer version, do not replace the generated cache.
 
@@ -12,10 +12,8 @@ To keep the data you collected even after updating to a newer version, do not re
 5. Execute this command after it finished installing ``python main.py``.
 
 # EXE
-Use the OPENSPY.exe file to quickly start the program without
-opening command line and running the python code.
-The EXE is created using PyInstaller, you can install it using ``pip install pyinstaller``.
-Use this command to create the .exe file ``python -m PyInstaller main.py --onefile``.
+Generate an executable file to easily start OpenSpy,
+you can do this in /settings option 1.
 
 # MORE
 https://discord.gg/hq7XFk3cA9
