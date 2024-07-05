@@ -55,7 +55,6 @@ def getNation():
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.guide('Divide nations with commas.')
-        TextPrinter.guide('Type ALL to fetch all nations.')
         TextPrinter.print('Nation Lookup', TextStyle.HEADER)
 
         input = TextPrinter.input()
@@ -130,7 +129,7 @@ def getNation():
 
             print(BOLD + 'Towns: ' + ENDC + str(nation['stats']['numTowns']))
 
-            print(BOLD + 'Stats: ' + ENDC + 'Allies=' + str(nation['stats']['numAllies']) + ' Enemies' + str(nation['stats']['numEnemies']))
+            print(BOLD + 'Stats: ' + ENDC + 'Allies=' + str(nation['stats']['numAllies']) + ' Enemies=' + str(nation['stats']['numEnemies']))
             
             print(BOLD + 'Registered: ' + ENDC + Utilities.epochToDatetime(nation['timestamps']['registered']))
 
@@ -139,7 +138,7 @@ def getNation():
             
             input = TextPrinter.input()
             if input == '/b' and len(response) == 1:
-                return
+                break
 
 
 def voteparty():
@@ -226,7 +225,6 @@ def getPlayer():
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.guide('Divide players with commas.')
-        TextPrinter.guide('Type ALL to fetch all players.')
         TextPrinter.print('Player Lookup', TextStyle.HEADER)
 
         input = TextPrinter.input()
@@ -533,9 +531,27 @@ def overclaim():
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
+        TextPrinter.print('What nation do you want to overclaim from?', TextStyle.ARGUMENT)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+        
+        response = Utilities.fetchAPI(f"https://api.earthmc.net/v3/aurora/nations?query={input}")
+
+        if response != None:
+            response = response[0]
+        else:
+            TextPrinter.print('Nation not found.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
         TextPrinter.print('This can take a while...', TextStyle.ARGUMENT)
 
-        towns = getOverclaim()
+        towns = getOverclaim(response)
 
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
