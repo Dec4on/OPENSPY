@@ -9,6 +9,7 @@ class TextStyle(Enum):
     ERROR = 'Fail'
     GRAY = 'Gray'
     BLUE = 'Blue'
+    GREEN = 'Green'
 
 
 class bcolors:
