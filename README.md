@@ -1,6 +1,6 @@
 # OPENSPY
 A command line python application that uses the Earthmc API.
-OPENSPY is easy to use, fast and reliable.
+OpenSpy is easy to use, fast and reliable.
 Make sure to keep the app open as much as possible, it collects player data while it's open.
 To keep the data you collected even after updating to a newer version, do not replace the generated cache.
 
