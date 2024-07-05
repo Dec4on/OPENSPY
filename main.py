@@ -6,12 +6,13 @@ from libs.pirate import Pirate
 from libs.newday import Newday
 from libs.ruins import Ruins
 from libs.victims import Victims
+from libs.generateExe import Generate
 from libs.overclaim import getOverclaim
 import math
 from concurrent.futures import ThreadPoolExecutor
 
 # Global variables
-VERSION = 1.0
+VERSION = 1.1
 
 BOLD = '\033[1m'
 ENDC = '\033[0m'
@@ -569,6 +570,37 @@ def overclaim():
             break
 
 
+def settings():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Settings', TextStyle.HEADER)
+        print()
+        TextPrinter.print(f'- Generate executable (1)', TextStyle.ARGUMENT)
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+        try:
+            selected_setting = int(input)
+        except Exception:
+            TextPrinter.print('Input has to be a number.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+        if selected_setting == 1:
+            while True:
+                TextPrinter.clear()
+                TextPrinter.guide("'/b' to go back.")
+                TextPrinter.print('Settings', TextStyle.HEADER)
+                Generate.generateExe()
+                input = TextPrinter.input().strip()
+                if input == '/b':
+                    break
+                continue
+        else:
+            TextPrinter.print('No setting found with number.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
 
 def victims():
     while True:
@@ -624,7 +656,8 @@ COMMANDS = {
     'GOTO': 'goto()',
     'VICTIMS': 'victims()',
     'OVERCLAIM': 'overclaim()',
-    'ONLINE': 'online()'
+    'ONLINE': 'online()',
+    'SETTINGS': 'settings()'
 }
 
 
@@ -670,7 +703,7 @@ By vncet                                            V{VERSION}
             '/victims       Find players in the wilderness',
             '/overclaim     Towns that you can steal land from',
             '/online        Online players in town or nation',
-            '/trades        COMING SOON'
+            '/settings      OpenSpy settings'
         ]
 
         half = (len(commands) + 1) // 2
