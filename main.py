@@ -9,6 +9,8 @@ from libs.victims import Victims
 from libs.generateExe import Generate
 from libs.overclaim import getOverclaim
 from libs.fallingin import getTownsFallingIn
+from libs.noperm import getNoPerm
+from libs.forsale import getForSaleTowns
 import math
 from concurrent.futures import ThreadPoolExecutor
 
@@ -852,6 +854,94 @@ def victims():
         if input == '/b':
             break
 
+def noPerm():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('No Perm Towns', TextStyle.HEADER)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
+        
+        noperm_towns = getNoPerm()
+
+        if noperm_towns == None:
+            TextPrinter.print('Rate limited, try again in a minute.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('No Perm Towns', TextStyle.HEADER)
+
+        if noperm_towns == []:
+            TextPrinter.print('Empty', TextStyle.BOLD)
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                break
+            continue
+
+        noperm_towns = sorted(noperm_towns, key=lambda town: town['stats']['numTownBlocks'], reverse=True)
+
+        header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
+        TextPrinter.print(header)
+
+        for town in noperm_towns:
+            name = town['name'].ljust(20)
+            num_town_blocks = town['stats']['numTownBlocks']
+            max_town_blocks = town['stats']['maxTownBlocks']
+            chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
+            residents = str(town['stats']['numResidents'])
+            row = f"{name}{chunks}{' ' * 12}{residents}"
+            TextPrinter.print(row)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            break
+
+def forSale():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('For Sale Towns', TextStyle.HEADER)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
+        
+        for_sale_towns = getForSaleTowns()
+
+        if for_sale_towns == None:
+            TextPrinter.print('Rate limited, try again in a minute.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('For Sale Towns', TextStyle.HEADER)
+
+        if for_sale_towns == []:
+            TextPrinter.print('Empty', TextStyle.BOLD)
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                break
+            continue
+
+        header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{' ' * 10}Price{ENDC}"
+        TextPrinter.print(header)
+
+        count = 20
+        for town in for_sale_towns:
+            if count == 0:
+                break
+            count -= 1
+            name = town['name'].ljust(20)
+            num_town_blocks = town['stats']['numTownBlocks']
+            max_town_blocks = town['stats']['maxTownBlocks']
+            chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
+            residents = str(town['stats']['numResidents'])
+            price = str(int(town['stats']['forSalePrice']))
+            row = f"{name}{chunks}{' ' * 12}{residents}{' ' * 10}{price}g"
+            TextPrinter.print(row)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            break    
 
 
 # Available commands
@@ -869,7 +959,9 @@ COMMANDS = {
     'OVERCLAIM': 'overclaim()',
     'ONLINE': 'online()',
     'SETTINGS': 'settings()',
-    'FALLINGIN': 'fallingIn()'
+    'FALLINGIN': 'fallingIn()',
+    'NOPERM': 'noPerm()',
+    'FORSALE': 'forSale()'
 }
 
 
@@ -917,6 +1009,8 @@ By vncet                                            V{VERSION}
             '/overclaim     Towns that you can steal land from',
             '/online        Online players in town or nation',
             '/fallingin     Towns falling in nation',
+            '/noperm        Towns with build permissions off',
+            '/forsale       For sale towns sorted from low to high',
             '/settings      OpenSpy settings'
         ]
 
