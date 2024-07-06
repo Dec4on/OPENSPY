@@ -8,11 +8,12 @@ from libs.ruins import Ruins
 from libs.victims import Victims
 from libs.generateExe import Generate
 from libs.overclaim import getOverclaim
+from libs.fallingin import getTownsFallingIn
 import math
 from concurrent.futures import ThreadPoolExecutor
 
 # Global variables
-VERSION = 1.1
+VERSION = 1.2
 
 BOLD = '\033[1m'
 ENDC = '\033[0m'
@@ -48,6 +49,114 @@ def findPlayer():
         input = TextPrinter.input()
         if input.strip() == '/b':
             return
+
+
+def getTown():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.guide('Divide towns with commas.')
+        TextPrinter.print('Town Lookup', TextStyle.HEADER)
+
+        input = TextPrinter.input()
+        if input.strip() == '/b':
+            return
+
+        result = ','.join(Utilities.queryToList(input))
+        response = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/towns?query={result}')
+        if response == None:
+            TextPrinter.print('Town not found.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('Town Lookup', TextStyle.HEADER)
+
+            if len(response) > 1:
+                TextPrinter.print('Type item index to select.')
+
+                index = 1
+                for item in response:
+                    town_name = item['name']
+                    TextPrinter.print(f'- {town_name} ({index})', TextStyle.ARGUMENT)
+                    index += 1
+
+                input = TextPrinter.input()
+                if input.strip() == '/b':
+                    return
+                
+                try:
+                    selected_index = int(input.strip()) - 1
+                except Exception:
+                    continue
+                
+                TextPrinter.clear()
+                TextPrinter.guide("'/b' to go back.")
+                TextPrinter.print('Town Lookup', TextStyle.HEADER)
+            else:
+                selected_index = 0
+
+            try:
+                town = response[selected_index]
+            except Exception:
+                TextPrinter.print('Wrong index.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
+
+            print(BOLD + 'Name: ' + ENDC + town['name'])
+
+            if town['board'] and town['board'] != '/town set board [msg]':
+                print(BOLD + 'Board: ' + ENDC + town['board'])
+
+            if town['wiki']:
+                print(BOLD + 'Wiki: ' + ENDC + town['wiki'])
+            
+            print(BOLD + 'Capital: ' + ENDC + str(town['status']['isCapital']))
+
+            print(BOLD + 'Mayor: ' + ENDC + town['mayor']['name'])
+
+            if town['nation']['name']:
+                print(BOLD + 'Nation: ' + ENDC + town['nation']['name'])
+
+            balance = int(town['stats']['balance'])
+            print(BOLD + 'Bank: ' + ENDC + str(balance) + 'g')
+
+            is_public = str(town['status']['isPublic'])
+            is_open = str(town['status']['isOpen'])
+            overclaimshield = str(town['status']['hasOverclaimShield'])
+            print(BOLD + 'Status: ' + ENDC + 'isPublic=' + is_public + ' isOpen=' + is_open + ' hasOverclaimShield=' + overclaimshield)
+
+            print(BOLD + 'Total Town Blocks: ' + ENDC + str(town['stats']['numTownBlocks']))
+
+            print(BOLD + 'Residents: ' + ENDC + str(town['stats']['numResidents']))
+
+            print(BOLD + 'Registered: ' + ENDC + Utilities.epochToDatetime(town['timestamps']['registered']))
+
+            def getRanked(list):
+                new_list = []
+                for user in list:
+                    new_list.append(user['name'])
+                return new_list
+            
+            if town['ranks']['Councillor'] != []:
+                print(BOLD + 'Councillor: ' + ENDC + Utilities.listToString(town['ranks']['Councillor']))
+
+            if town['ranks']['Builder'] != []:
+                print(BOLD + 'Colonist: ' + ENDC + Utilities.listToString(town['ranks']['Councillor']))
+
+            if town['outlaws'] != []:
+                formatted_list = getRanked(town['outlaws'])
+                print(BOLD + 'Outlaws: ' + ENDC + Utilities.listToString(formatted_list))
+
+            if town['trusted'] != []:
+                formatted_list = getRanked(town['trusted'])
+                print(BOLD + 'Trusted: ' + ENDC + Utilities.listToString(formatted_list))
+
+            input = TextPrinter.input()
+            if input == '/b' and len(response) == 1:
+                break
 
 
 def getNation():
@@ -116,7 +225,7 @@ def getNation():
             print(BOLD + 'King: ' + ENDC + nation['king']['name'])
 
             balance = int(nation['stats']['balance'])
-            print(BOLD + 'Balance: ' + ENDC + str(balance) + 'g')
+            print(BOLD + 'Bank: ' + ENDC + str(balance) + 'g')
 
             is_public = str(nation['status']['isPublic'])
             is_open = str(nation['status']['isOpen'])
@@ -128,17 +237,102 @@ def getNation():
             print(BOLD + 'Residents: ' + ENDC + str(nation['stats']['numResidents']))
 
             print(BOLD + 'Towns: ' + ENDC + str(nation['stats']['numTowns']))
-
-            print(BOLD + 'Stats: ' + ENDC + 'Allies=' + str(nation['stats']['numAllies']) + ' Enemies=' + str(nation['stats']['numEnemies']))
             
+            def getRanked(list):
+                new_list = []
+                for user in list:
+                    new_list.append(user['name'])
+                return new_list
+
+            if nation['allies'] != []:
+                formatted_list = getRanked(nation['allies'])
+                print(BOLD + 'Allies: ' + ENDC + Utilities.listToString(formatted_list))
+            else:
+                print(BOLD + 'Allies: ' + ENDC + "None")
+
+            if nation['enemies'] != []:
+                formatted_list = getRanked(nation['enemies'])
+                print(BOLD + 'Enemies: ' + ENDC + Utilities.listToString(formatted_list))
+            else:
+                print(BOLD + 'Enemies: ' + ENDC + "None")
+
             print(BOLD + 'Registered: ' + ENDC + Utilities.epochToDatetime(nation['timestamps']['registered']))
-
-            if nation['uuid']:
-                print(BOLD + 'Uuid: ' + ENDC + nation['uuid'])
             
+            if nation['ranks']['Chancellor'] != []:
+                print(BOLD + 'Chancellors: ' + ENDC + Utilities.listToString(nation['ranks']['Chancellor']))
+
+            if nation['ranks']['Colonist'] != []:
+                print(BOLD + 'Colonist: ' + ENDC + Utilities.listToString(nation['ranks']['Colonist']))
+
+            if nation['ranks']['Diplomat'] != []:
+                print(BOLD + 'Diplomat: ' + ENDC + Utilities.listToString(nation['ranks']['Diplomat']))
+
+            if nation['sanctioned'] != []:
+                formatted_list = getRanked(nation['sanctioned'])
+                print(BOLD + 'Diplomat: ' + ENDC + Utilities.listToString(formatted_list))
+
             input = TextPrinter.input()
             if input == '/b' and len(response) == 1:
                 break
+
+
+def fallingIn():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Falling in Nation', TextStyle.HEADER)
+        TextPrinter.print('What nation do you want to check?', TextStyle.ARGUMENT)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+
+        response = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/nations?query={input}')
+        if response == None:
+            TextPrinter.print('Nation not found.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Falling in Nation', TextStyle.HEADER)
+        TextPrinter.print('This can take a while...', TextStyle.ARGUMENT)
+
+        ruined_towns, fallen_towns = getTownsFallingIn(response[0])
+        
+        if ruined_towns == None or fallen_towns == None:
+            TextPrinter.print('Rate limited, try again in a minute.', TextStyle.WARNING)
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                return
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Falling in Nation', TextStyle.HEADER)
+        TextPrinter.print('Within 3 newdays.', TextStyle.ARGUMENT)
+
+        TextPrinter.print('\nFalling Towns', TextStyle.BLUE)
+        for town in fallen_towns:
+            TextPrinter.print('--------', TextStyle.GRAY)
+            print(BOLD + 'Town: ' + ENDC + town['name'])
+            print(BOLD + 'Balance: ' + ENDC + str(town['stats']['balance']))
+            print(BOLD + 'Chunks: ' + ENDC + str(town['stats']['numTownBlocks']))
+        if fallen_towns == []:
+            TextPrinter.print('No falling towns.', TextStyle.ARGUMENT)
+
+        TextPrinter.print('--------', TextStyle.GRAY)
+        TextPrinter.print('Ruined Towns', TextStyle.BLUE)
+        for town in ruined_towns:
+            TextPrinter.print('--------', TextStyle.GRAY)
+            print(BOLD + 'Town: ' + ENDC + town['name'])
+            print(BOLD + 'Balance: ' + ENDC + str(town['stats']['balance']))
+            print(BOLD + 'Chunks: ' + ENDC + str(town['stats']['numTownBlocks']))
+        if ruined_towns == []:
+            TextPrinter.print('No ruined towns.', TextStyle.ARGUMENT)
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
 
 
 def voteparty():
@@ -663,8 +857,9 @@ def victims():
 # Available commands
 COMMANDS = {
     'VP': 'voteparty()',
-    'PLAYER': 'getPlayer()', 
+    'RES': 'getPlayer()', 
     'NATION': 'getNation()',
+    'TOWN': 'getTown()',
     'FIND': 'findPlayer()',
     'PIRATE': 'pirate()',
     'NEWDAY': 'newday()',
@@ -673,7 +868,8 @@ COMMANDS = {
     'VICTIMS': 'victims()',
     'OVERCLAIM': 'overclaim()',
     'ONLINE': 'online()',
-    'SETTINGS': 'settings()'
+    'SETTINGS': 'settings()',
+    'FALLINGIN': 'fallingIn()'
 }
 
 
@@ -709,8 +905,9 @@ By vncet                                            V{VERSION}
 
         commands = [
             '/vp            Votes remaining till voteparty',
-            '/player        Fetch player information',
-            '/nation        Fetch nation information',
+            '/res           Get player information',
+            '/nation        Get nation information',
+            '/town          Get town information',
             '/find          Find player location',
             '/pirate        Find towns you can steal',
             '/newday        Falling and ruined towns next newday',
@@ -719,6 +916,7 @@ By vncet                                            V{VERSION}
             '/victims       Find players in the wilderness',
             '/overclaim     Towns that you can steal land from',
             '/online        Online players in town or nation',
+            '/fallingin     Towns falling in nation',
             '/settings      OpenSpy settings'
         ]
 
