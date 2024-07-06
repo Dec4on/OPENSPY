@@ -4,10 +4,24 @@ from concurrent.futures import ThreadPoolExecutor
 
 @staticmethod
 def getOverclaim(from_nation):
-    all_towns = Utilities.fetchAPI('https://api.earthmc.net/v3/aurora/towns')
-    town_list = [x['name'] for x in all_towns]
-    
+    nation_list = [x['name'] for x in from_nation['enemies']]
+
     try:
+        completed_nation_list = []
+        with ThreadPoolExecutor(max_workers=40) as executor:
+            futures = []
+            for i in range(0, len(nation_list), 100):
+                sublist = nation_list[i:i + 100]
+                futures.append(executor.submit(Utilities.fetch_nation_chunk, sublist))
+            for index, future in enumerate(futures):
+                completed_nation_list.extend(future.result())
+        
+        town_list = []
+        for nation in completed_nation_list:
+            town_list_temp = [x['name'] for x in nation['towns']]
+            for town in town_list_temp:
+                town_list.append(town)
+
         completed_town_list = []
         with ThreadPoolExecutor(max_workers=40) as executor:
             futures = []
@@ -21,16 +35,6 @@ def getOverclaim(from_nation):
         return None
 
     overclaimable_towns = [town for town in completed_town_list if town and town['status']['isOverClaimed'] and not town['status']['hasOverclaimShield']]
-    enemies = [enemy['name'] for enemy in from_nation['enemies']]
-    overclaimable_towns = [town for town in overclaimable_towns if town['name'] in enemies]
     overclaimable_towns = sorted(overclaimable_towns, key=lambda town: town['stats']['numResidents'], reverse=True)
-    
-    # final_return = []
-    # count = 20
-    # for town in overclaimable_towns:
-    #     if count == 0:
-    #         break
-    #     final_return.append(town)
-    #     count -= 1
 
     return overclaimable_towns

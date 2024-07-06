@@ -151,6 +151,15 @@ class Utilities:
         return player_chunk
     
     @staticmethod
+    def fetch_nation_chunk(sublist):
+        try:
+            result = ','.join(sublist)
+            nation_chunk = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/nations?query={result}')
+        except Exception:
+            return None
+        return nation_chunk
+    
+    @staticmethod
     def listToString(list):
         result = ', '.join(list)
         return str(result)

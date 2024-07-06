@@ -271,7 +271,7 @@ def getNation():
 
             if nation['sanctioned'] != []:
                 formatted_list = getRanked(nation['sanctioned'])
-                print(BOLD + 'Diplomat: ' + ENDC + Utilities.listToString(formatted_list))
+                print(BOLD + 'Sanctioned: ' + ENDC + Utilities.listToString(formatted_list))
 
             input = TextPrinter.input()
             if input == '/b' and len(response) == 1:
@@ -702,24 +702,37 @@ def ruins():
                 return
             continue
         
-        TextPrinter.clear()
-        TextPrinter.guide("'/b' to go back.")
-        TextPrinter.print('Ruins', TextStyle.HEADER)
+        page = 1
+        towns_per_page = 5
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+            TextPrinter.print('Ruins', TextStyle.HEADER)
 
-        for town in ruined_towns:
-            TextPrinter.print('--------', TextStyle.GRAY)
-            # Get town coordinates to nearest whole number
-            x_coord = str(round(town['coordinates']['spawn']['x']))
-            y_coord = str(round(town['coordinates']['spawn']['y']))
-            z_coord = str(round(town['coordinates']['spawn']['z']))
-            print(BOLD + 'Town: ' + ENDC + town['name'])
-            print(BOLD + 'Chunks: ' + ENDC + str(town['stats']['numTownBlocks']))
-            print(BOLD + 'Ruined At: ' + ENDC + Utilities.epochToDatetime(town['timestamps']['ruinedAt'])) 
-            print(BOLD + 'Coordinates: ' + ENDC + f'X:{x_coord} Y:{y_coord} Z:{z_coord}')
-            
-        input = TextPrinter.input().strip()
-        if input == '/b':
-            return
+            for town in ruined_towns[(page - 1) * towns_per_page:page * towns_per_page]:
+                TextPrinter.print('--------', TextStyle.GRAY)
+                # Get town coordinates to nearest whole number
+                x_coord = str(round(town['coordinates']['spawn']['x']))
+                y_coord = str(round(town['coordinates']['spawn']['y']))
+                z_coord = str(round(town['coordinates']['spawn']['z']))
+                print(BOLD + 'Town: ' + ENDC + town['name'])
+                print(BOLD + 'Chunks: ' + ENDC + str(town['stats']['numTownBlocks']))
+                print(BOLD + 'Ruined At: ' + ENDC + Utilities.epochToDatetime(town['timestamps']['ruinedAt'])) 
+                print(BOLD + 'Coordinates: ' + ENDC + f'X:{x_coord} Y:{y_coord} Z:{z_coord}')
+                
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                break
+            try:
+                input = int(input)
+
+            except Exception:
+                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
+
+            page = input
 
 
 def overclaim():
@@ -745,13 +758,9 @@ def overclaim():
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
-        TextPrinter.print('This can take a while...', TextStyle.ARGUMENT)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
 
         towns = getOverclaim(response)
-
-        TextPrinter.clear()
-        TextPrinter.guide("'/b' to go back.")
-        TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
 
         if towns == None:
             TextPrinter.print('Please try again later.', TextStyle.WARNING)
@@ -759,27 +768,45 @@ def overclaim():
             continue
 
         if towns == []:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
             TextPrinter.print('Empty', TextStyle.BOLD)
+            input = TextPrinter.input().strip()
+            continue
+
+        page = 1
+        towns_per_page = 10
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+            TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
+
+            header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
+            TextPrinter.print(header)
+
+            for town in towns[(page - 1) * towns_per_page:page * towns_per_page]:
+                name = town['name'].ljust(20)
+                num_town_blocks = town['stats']['numTownBlocks']
+                max_town_blocks = town['stats']['maxTownBlocks']
+                chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
+                residents = str(town['stats']['numResidents'])
+                row = f"{name}{chunks}{' ' * 12}{residents}"
+                TextPrinter.print(row)
+
             input = TextPrinter.input().strip()
             if input == '/b':
                 break
-            continue
+            try:
+                input = int(input)
 
-        header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
-        TextPrinter.print(header)
+            except Exception:
+                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
 
-        for town in towns:
-            name = town['name'].ljust(20)
-            num_town_blocks = town['stats']['numTownBlocks']
-            max_town_blocks = town['stats']['maxTownBlocks']
-            chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
-            residents = str(town['stats']['numResidents'])
-            row = f"{name}{chunks}{' ' * 12}{residents}"
-            TextPrinter.print(row)
-
-        input = TextPrinter.input().strip()
-        if input == '/b':
-            break
+            page = input
 
 
 def settings():
@@ -868,11 +895,10 @@ def noPerm():
             time.sleep(.4)
             continue
 
-        TextPrinter.clear()
-        TextPrinter.guide("'/b' to go back.")
-        TextPrinter.print('No Perm Towns', TextStyle.HEADER)
-
         if noperm_towns == []:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('No Perm Towns', TextStyle.HEADER)
             TextPrinter.print('Empty', TextStyle.BOLD)
             input = TextPrinter.input().strip()
             if input == '/b':
@@ -880,22 +906,39 @@ def noPerm():
             continue
 
         noperm_towns = sorted(noperm_towns, key=lambda town: town['stats']['numTownBlocks'], reverse=True)
+        page = 1
+        towns_per_page = 10
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+            TextPrinter.print('No Perm Towns', TextStyle.HEADER)
+            
+            header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
+            TextPrinter.print(header)
 
-        header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
-        TextPrinter.print(header)
+            for town in noperm_towns[(page - 1) * towns_per_page:page * towns_per_page]:
+                name = town['name'].ljust(20)
+                num_town_blocks = town['stats']['numTownBlocks']
+                max_town_blocks = town['stats']['maxTownBlocks']
+                chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
+                residents = str(town['stats']['numResidents'])
+                row = f"{name}{chunks}{' ' * 12}{residents}"
+                TextPrinter.print(row)
 
-        for town in noperm_towns:
-            name = town['name'].ljust(20)
-            num_town_blocks = town['stats']['numTownBlocks']
-            max_town_blocks = town['stats']['maxTownBlocks']
-            chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
-            residents = str(town['stats']['numResidents'])
-            row = f"{name}{chunks}{' ' * 12}{residents}"
-            TextPrinter.print(row)
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                return
+            try:
+                input = int(input)
 
-        input = TextPrinter.input().strip()
-        if input == '/b':
-            break
+            except Exception:
+                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
+
+            page = input
+
 
 def forSale():
     while True:
@@ -911,37 +954,53 @@ def forSale():
             time.sleep(.4)
             continue
 
-        TextPrinter.clear()
-        TextPrinter.guide("'/b' to go back.")
-        TextPrinter.print('For Sale Towns', TextStyle.HEADER)
-
         if for_sale_towns == []:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('For Sale Towns', TextStyle.HEADER)
             TextPrinter.print('Empty', TextStyle.BOLD)
             input = TextPrinter.input().strip()
             if input == '/b':
                 break
             continue
 
-        header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{' ' * 10}Price{ENDC}"
-        TextPrinter.print(header)
+        page = 1
+        towns_per_page = 10
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+            TextPrinter.print('For Sale Towns', TextStyle.HEADER)
+            
+            header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{' ' * 10}Price{ENDC}"
+            TextPrinter.print(header)
 
-        count = 20
-        for town in for_sale_towns:
-            if count == 0:
-                break
-            count -= 1
-            name = town['name'].ljust(20)
-            num_town_blocks = town['stats']['numTownBlocks']
-            max_town_blocks = town['stats']['maxTownBlocks']
-            chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
-            residents = str(town['stats']['numResidents'])
-            price = str(int(town['stats']['forSalePrice']))
-            row = f"{name}{chunks}{' ' * 12}{residents}{' ' * 10}{price}g"
-            TextPrinter.print(row)
+            count = 20
+            for town in for_sale_towns[(page - 1) * towns_per_page:page * towns_per_page]:
+                if count == 0:
+                    break
+                count -= 1
+                name = town['name'].ljust(20)
+                num_town_blocks = town['stats']['numTownBlocks']
+                max_town_blocks = town['stats']['maxTownBlocks']
+                chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
+                residents = str(town['stats']['numResidents'])
+                price = str(int(town['stats']['forSalePrice']))
+                row = f"{name}{chunks}{' ' * 12}{residents}{' ' * 10}{price}g"
+                TextPrinter.print(row)
 
-        input = TextPrinter.input().strip()
-        if input == '/b':
-            break    
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                return
+            try:
+                input = int(input)
+
+            except Exception:
+                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
+
+            page = input
 
 
 # Available commands
