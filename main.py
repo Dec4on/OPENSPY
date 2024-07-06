@@ -50,7 +50,7 @@ def findPlayer():
 
         input = TextPrinter.input()
         if input.strip() == '/b':
-            return
+            continue
 
 
 def getTown():
