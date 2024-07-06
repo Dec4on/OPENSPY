@@ -36,7 +36,7 @@ class TextPrinter:
 
     @staticmethod
     def clear():
-        os.system('cls')
+        os.system('cls' if os.name == 'nt' else 'clear')
 
     @staticmethod
     def input():
