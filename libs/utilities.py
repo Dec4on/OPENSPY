@@ -149,3 +149,8 @@ class Utilities:
         except Exception:
             return None
         return player_chunk
+    
+    @staticmethod
+    def listToString(list):
+        result = ', '.join(list)
+        return str(result)
