@@ -1,6 +1,7 @@
 from datetime import datetime
 import requests
 import sqlite3
+import json
 
 
 class Utilities:
@@ -11,10 +12,12 @@ class Utilities:
         for item in listed:
             finalList.append(item.strip())
         return finalList
+    
     @staticmethod
     def epochToDatetime(epoch: int):
         date = datetime.fromtimestamp(epoch / 1000)
         return date.strftime('%Y-%m-%d %H:%M:%S')
+    
     @staticmethod
     def fetchAPI(request: str):
         try:
@@ -24,28 +27,17 @@ class Utilities:
             return None
         
     @staticmethod
-    def insertPlayerData(conn, name, timestamp, x, z, balance=None):
+    def insertPlayerData(conn, name, timestamp, x, z):
         c = conn.cursor()
         
-        if balance is None:
-            c.execute('''
-                INSERT INTO player_data (name, timestamp, x, z)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(name) DO UPDATE SET
-                    timestamp=excluded.timestamp,
-                    x=excluded.x,
-                    z=excluded.z
-            ''', (name, timestamp, x, z))
-        else:
-            c.execute('''
-                INSERT INTO player_data (name, timestamp, x, z, bal)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(name) DO UPDATE SET
-                    timestamp=excluded.timestamp,
-                    x=excluded.x,
-                    z=excluded.z,
-                    bal=excluded.bal
-            ''', (name, timestamp, x, z, balance))
+        c.execute('''
+            INSERT INTO player_data (name, timestamp, x, z)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                timestamp=excluded.timestamp,
+                x=excluded.x,
+                z=excluded.z
+        ''', (name, timestamp, x, z))
         
         conn.commit()
     
@@ -62,7 +54,6 @@ class Utilities:
                 'timestamp': row[1],
                 'x': row[2],
                 'z': row[3],
-                'balance': row[4]
             }
             return result
         else:
@@ -81,11 +72,20 @@ class Utilities:
                 'timestamp': row[1],
                 'x': row[2],
                 'z': row[3],
-                'balance': row[4]
             }
             results.append(result)
         
         return results
+    
+    @staticmethod
+    def numberOfPages(list, items_per_page):
+        list = len(list)
+        full_pages = list // items_per_page
+        
+        if list % items_per_page != 0:
+            full_pages += 1
+
+        return full_pages
     
     @staticmethod
     def DBstart():
@@ -97,15 +97,113 @@ class Utilities:
                 name TEXT UNIQUE,
                 timestamp INTEGER,
                 x INTEGER,
-                z INTEGER,
-                bal INTEGER
+                z INTEGER
             )
         ''')
 
-        c.execute('CREATE INDEX IF NOT EXISTS idx_name ON player_data (name)')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS player_balances (
+                id INTEGER PRIMARY KEY,
+                player_name TEXT,
+                balance INTEGER,
+                timestamp INTEGER,
+                x INTEGER,
+                z INTEGER,
+                FOREIGN KEY(player_name) REFERENCES player_data(name)
+            )
+        ''')
+
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS trade_potentials (
+                id INTEGER PRIMARY KEY,
+                player_name TEXT,
+                profit BOOLEAN,
+                potentials TEXT,
+                amount INTEGER,
+                timestamp INTEGER,
+                x INTEGER,
+                z INTEGER,
+                FOREIGN KEY(player_name) REFERENCES player_data(name)
+            )
+        ''')
+
+        c.execute('CREATE INDEX IF NOT EXISTS idx_player_name ON player_balances (player_name)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON player_balances (timestamp)')
+        c.execute('CREATE INDEX IF NOT EXISTS idx_trade_player_name ON trade_potentials (player_name)')
 
         conn.commit()
         return conn
+
+    @staticmethod
+    def addBalance(conn, player_name, balance, timestamp, x=None, z=None):
+        c = conn.cursor()
+        if x is not None and z is not None:
+            c.execute('INSERT INTO player_balances (player_name, balance, timestamp, x, z) VALUES (?, ?, ?, ?, ?)',
+                    (player_name, balance, timestamp, x, z))
+        else:
+            c.execute('INSERT INTO player_balances (player_name, balance, timestamp) VALUES (?, ?, ?)',
+                    (player_name, balance, timestamp))
+        conn.commit()
+
+    @staticmethod
+    def getPlayerBalances(conn, player_name):
+        c = conn.cursor()
+        c.execute('SELECT * FROM player_balances WHERE player_name = ? ORDER BY timestamp ASC', (player_name,))
+        rows = c.fetchall()
+        balances = []
+        for row in rows:
+            balance_dict = {
+                'id': row[0],
+                'player_name': row[1],
+                'balance': row[2],
+                'timestamp': row[3],
+                'x': row[4],
+                'z': row[5]
+            }
+            balances.append(balance_dict)
+        return balances
+
+    @staticmethod
+    def addTradePotential(conn, player_name, profit, potentials, timestamp, amount, x=None, z=None):
+        potentials = json.dumps(potentials)
+        c = conn.cursor()
+        if x is not None and z is not None:
+            c.execute('INSERT INTO trade_potentials (player_name, profit, potentials, timestamp, amount, x, z) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (player_name, profit, potentials, timestamp, amount, x, z))
+        else:
+            c.execute('INSERT INTO trade_potentials (player_name, profit, potentials, timestamp, amount) VALUES (?, ?, ?, ?, ?)',
+                    (player_name, profit, potentials, timestamp, amount))
+        conn.commit()
+
+    @staticmethod
+    def getAllTradePotentials(conn):
+        c = conn.cursor()
+        c.execute('SELECT player_name, profit, potentials, amount, timestamp, x, z FROM trade_potentials')
+        rows = c.fetchall()
+        columns = [column[0] for column in c.description]
+        trade_potentials = []
+        for row in rows:
+            trade_potentials.append(dict(zip(columns, row)))
+        return trade_potentials
+
+    @staticmethod
+    def purgeBalances(conn):
+        c = conn.cursor()
+        
+        c.execute('SELECT DISTINCT player_name FROM player_balances')
+        player_names = c.fetchall()
+        
+        for player_name_tuple in player_names:
+            player_name = player_name_tuple[0]
+            
+            c.execute('SELECT id FROM player_balances WHERE player_name = ? ORDER BY timestamp DESC', (player_name,))
+            balances = c.fetchall()
+            
+            if len(balances) > 2:
+                for balance_id in balances[2:]:
+                    c.execute('DELETE FROM player_balances WHERE id = ?', (balance_id[0],))
+        
+        conn.commit()
 
     def levenshteinDistance(s1, s2):
         if len(s1) < len(s2):

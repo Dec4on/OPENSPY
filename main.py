@@ -1,5 +1,6 @@
 import threading
 import time
+import json
 from libs.printer import TextPrinter, TextStyle 
 from libs.utilities import Utilities
 from libs.pirate import Pirate
@@ -11,6 +12,7 @@ from libs.overclaim import getOverclaim
 from libs.fallingin import getTownsFallingIn
 from libs.noperm import getNoPerm
 from libs.forsale import getForSaleTowns
+from libs.trades import getTrades
 import math
 from concurrent.futures import ThreadPoolExecutor
 
@@ -18,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 VERSION = 1.2
 
 BOLD = '\033[1m'
+GRAY = '\033[90m'
 ENDC = '\033[0m'
 
 def findPlayer():
@@ -1003,6 +1006,54 @@ def forSale():
             page = input
 
 
+def trades():
+    conn = Utilities.DBstart()
+
+    page = 1
+    trades_per_page = 5
+    while True:
+        trades = Utilities.getAllTradePotentials(conn)
+        trades = sorted(trades, key=lambda x: x['timestamp'], reverse=True)
+        number_of_pages = Utilities.numberOfPages(trades, trades_per_page)
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.guide(f"Press enter to refresh.")
+        TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+        TextPrinter.print(f'Trades ({page}/{number_of_pages})', TextStyle.HEADER)
+
+        for trade in trades[(page - 1) * trades_per_page:page * trades_per_page]:
+            name = trade['player_name']
+            profit = trade['profit']
+            potentials = json.loads(trade['potentials'])
+            amount = trade['amount']
+            potentials = Utilities.listToString(potentials)
+            epoch = trade['timestamp']
+            timestamp = Utilities.epochToDatetime(epoch * 1000)
+            print()
+            if profit == True:
+                print(BOLD + f"- {name} gave {amount}g to one of these players: {potentials}" + ENDC + GRAY + f' [{timestamp}]' + ENDC)
+            else:
+                print(BOLD + f"- {name} received {amount}g from one of these players: {potentials}" + ENDC + GRAY + f' [{timestamp}]' + ENDC)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+        
+        if input == '':
+            continue
+
+        try:
+            input = int(input)
+        except Exception:
+            TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        page = input
+
+
+
 # Available commands
 COMMANDS = {
     'VP': 'voteparty()',
@@ -1020,21 +1071,33 @@ COMMANDS = {
     'SETTINGS': 'settings()',
     'FALLINGIN': 'fallingIn()',
     'NOPERM': 'noPerm()',
-    'FORSALE': 'forSale()'
+    'FORSALE': 'forSale()',
+    'TRADES': 'trades()'
 }
 
 
+
 def tasks():
+    epoch_last_player = int(time.time())
+    epoch_last_trade = int(time.time())
     conn = Utilities.DBstart()
     while True:
-        try:
-            response = Utilities.fetchAPI('https://map.earthmc.net/tiles/players.json')
-            epoch = int(time.time())
-            for item in response['players']:
-                Utilities.insertPlayerData(conn, item['name'].lower(), epoch, item['x'], item['z'])
-            time.sleep(3)
-        except Exception:
-            time.sleep(3)
+        epoch_now = int(time.time())
+        if epoch_now - epoch_last_player >= 3:
+            epoch_last_player = epoch_now
+            try:
+                response = Utilities.fetchAPI('https://map.earthmc.net/tiles/players.json')
+                epoch = int(time.time())
+                for item in response['players']:
+                    Utilities.insertPlayerData(conn, item['name'].lower(), epoch, item['x'], item['z'])
+            except Exception:
+                continue
+        
+        if epoch_now - epoch_last_trade >= 10:
+            epoch_last_trade = epoch_now
+            getTrades(conn)
+
+        time.sleep(0.2)
 
 
 # Main loop
@@ -1049,7 +1112,7 @@ def main():
 ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║╚════██║██╔═══╝   ╚██╔╝  
 ╚██████╔╝██║     ███████╗██║ ╚████║███████║██║        ██║   
  ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝        ╚═╝                                                       
-By vncet                                            V{VERSION}                      
+By vncet                                            V{VERSION} 
         """, TextStyle.GRAY)
 
         TextPrinter.print('Commands', TextStyle.HEADER)
@@ -1070,6 +1133,8 @@ By vncet                                            V{VERSION}
             '/fallingin     Towns falling in nation',
             '/noperm        Towns with build permissions off',
             '/forsale       For sale towns sorted from low to high',
+            "/trades        View player's private trades",
+            '/map           Coming soon',
             '/settings      OpenSpy settings'
         ]
 
