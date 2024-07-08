@@ -4,10 +4,11 @@ from libs.utilities import Utilities
 
 def getTrades(conn):
     trade_size = 1
-
-    player_fetch_list = Utilities.fetchAPI('http://melo.pylex.xyz:9155/api/online_players')
-
     try:
+        player_fetch_list = Utilities.fetchAPI('http://melo.pylex.xyz:9155/api/online_players')
+        if not player_fetch_list:
+            return None
+        
         player_list = []
         with ThreadPoolExecutor(max_workers=40) as executor:
             futures = []
@@ -16,8 +17,7 @@ def getTrades(conn):
                 futures.append(executor.submit(Utilities.fetch_player_chunk, sublist))        
             for future in futures:
                 player_list.extend(future.result())
-    except Exception as e:
-        print(f"Error fetching player data: {e}")
+    except Exception:
         return None
 
     timestamp = int(time.time())
