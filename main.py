@@ -20,7 +20,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 # Global variables
-VERSION = 1.2
+VERSION = 1.3
 
 BOLD = '\033[1m'
 GRAY = '\033[90m'
