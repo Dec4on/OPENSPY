@@ -13,7 +13,10 @@ from libs.fallingin import getTownsFallingIn
 from libs.noperm import getNoPerm
 from libs.forsale import getForSaleTowns
 from libs.trades import getTrades
+from libs.protect import protectPlayerCheck 
 import math
+import sys
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 # Global variables
@@ -23,8 +26,20 @@ BOLD = '\033[1m'
 GRAY = '\033[90m'
 ENDC = '\033[0m'
 
+protection_list = []
+
+
 def findPlayer():
     conn = Utilities.DBstart()
+
+    if Utilities.getSetting(conn, 'collect_locations') == False:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Find Player', TextStyle.HEADER)
+        TextPrinter.print('Location tracking is turned off in settings.', TextStyle.WARNING)
+        input = TextPrinter.input()
+        return
+    
     while True:
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
@@ -852,7 +867,7 @@ def settings():
                     break
                 continue
 
-        if selected_setting == 2:
+        elif selected_setting == 2:
             setting = False
             if Utilities.getSetting(conn, 'collect_locations') != False:
                 setting = True
@@ -860,7 +875,7 @@ def settings():
             Utilities.setSetting(conn, 'collect_locations', not setting)
             continue
 
-        if selected_setting == 3:
+        elif selected_setting == 3:
             setting = False
             if Utilities.getSetting(conn, 'collect_trades') != False:
                 setting = True
@@ -1039,6 +1054,14 @@ def forSale():
 def trades():
     conn = Utilities.DBstart()
 
+    if Utilities.getSetting(conn, 'collect_trades') == False:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Trades', TextStyle.HEADER)
+        TextPrinter.print('Trades tracking is turned off in settings.', TextStyle.WARNING)
+        input = TextPrinter.input()
+        return
+
     page = 1
     trades_per_page = 5
     while True:
@@ -1083,6 +1106,65 @@ def trades():
         page = input
 
 
+def protect():
+    conn = Utilities.DBstart()
+    global protection_list
+    while True:
+        if Utilities.getSetting(conn, 'collect_locations') == False:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('Protect Players', TextStyle.HEADER)
+            TextPrinter.print('Location tracking is turned off in settings.', TextStyle.WARNING)
+            input = TextPrinter.input()
+            return
+        
+        try:
+            from plyer import notification # type: ignore
+        except ImportError:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('Protect Players', TextStyle.HEADER)
+            TextPrinter.print('Required library not installed, press enter to install.', TextStyle.WARNING)
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                return
+            TextPrinter.print("Installing library 'Plyer'...", TextStyle.BLUE)
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "plyer"])
+            TextPrinter.print("Plyer has been installed.", TextStyle.GREEN)
+            time.sleep(1)
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.guide('Divide players with commas.')
+        TextPrinter.print('Protect Players', TextStyle.HEADER)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+
+        result = ','.join(Utilities.queryToList(input))
+        response = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/players?query={result}')
+        if response == None:
+            TextPrinter.print('Player not found.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+        
+        players_string = ','.join(Utilities.queryToList(result))
+        protection_list = Utilities.queryToList(input)
+
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide("Playing in fullscreen may suppress notifications.")
+            TextPrinter.print('Protect Players', TextStyle.HEADER)
+            TextPrinter.print(f'Protecting: {players_string}', TextStyle.ARGUMENT)
+
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                protection_list = []
+                break
+
+
 
 # Available commands
 COMMANDS = {
@@ -1102,12 +1184,14 @@ COMMANDS = {
     'FALLINGIN': 'fallingIn()',
     'NOPERM': 'noPerm()',
     'FORSALE': 'forSale()',
-    'TRADES': 'trades()'
+    'TRADES': 'trades()',
+    'PROTECT': 'protect()'
 }
 
 
 
 def tasks():
+    global protection_list
     epoch_last_player = int(time.time())
     epoch_last_trade = int(time.time())
     conn = Utilities.DBstart()
@@ -1123,6 +1207,9 @@ def tasks():
                         Utilities.insertPlayerData(conn, item['name'].lower(), epoch, item['x'], item['z'])
                 except Exception:
                     continue
+                for player in protection_list:
+                    protectPlayerCheck(conn, player)
+                    
         if Utilities.getSetting(conn, 'collect_trades') != False:
             if epoch_now - epoch_last_trade >= 10:
                 epoch_last_trade = epoch_now
@@ -1165,7 +1252,7 @@ By vncet                                            V{VERSION}
             '/noperm        Towns with build permissions off',
             '/forsale       For sale towns sorted from low to high',
             "/trades        View player's private trades",
-            '/map           Coming soon',
+            '/protect       Get notified when player is approaching',
             '/settings      OpenSpy settings'
         ]
 
