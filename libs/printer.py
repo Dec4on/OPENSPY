@@ -10,6 +10,7 @@ class TextStyle(Enum):
     GRAY = 'Gray'
     BLUE = 'Blue'
     GREEN = 'Green'
+    RED = 'Red'
 
 
 class bcolors:
@@ -23,6 +24,7 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    RED = '\033[91m'
 
 class TextPrinter:
     @staticmethod

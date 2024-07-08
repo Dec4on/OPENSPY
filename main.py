@@ -813,12 +813,24 @@ def overclaim():
 
 
 def settings():
+    conn = Utilities.DBstart()
     while True:
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.print('Settings', TextStyle.HEADER)
         print()
         TextPrinter.print(f'- Generate executable (1)', TextStyle.ARGUMENT)
+
+        if Utilities.getSetting(conn, 'collect_locations') != False:
+            TextPrinter.print(f'- Collect player location data (2)', TextStyle.GREEN)
+        else:
+            TextPrinter.print(f'- Collect player location data (2)', TextStyle.RED)
+
+        if Utilities.getSetting(conn, 'collect_trades') != False:
+            TextPrinter.print(f'- Collect player trades data (3)', TextStyle.GREEN)
+        else:
+            TextPrinter.print(f'- Collect player trades data (3)', TextStyle.RED)
+
         input = TextPrinter.input().strip()
         if input == '/b':
             return
@@ -828,6 +840,7 @@ def settings():
             TextPrinter.print('Input has to be a number.', TextStyle.WARNING)
             time.sleep(.4)
             continue
+
         if selected_setting == 1:
             while True:
                 TextPrinter.clear()
@@ -838,8 +851,25 @@ def settings():
                 if input == '/b':
                     break
                 continue
+
+        if selected_setting == 2:
+            setting = False
+            if Utilities.getSetting(conn, 'collect_locations') != False:
+                setting = True
+
+            Utilities.setSetting(conn, 'collect_locations', not setting)
+            continue
+
+        if selected_setting == 3:
+            setting = False
+            if Utilities.getSetting(conn, 'collect_trades') != False:
+                setting = True
+
+            Utilities.setSetting(conn, 'collect_trades', not setting)
+            continue
+
         else:
-            TextPrinter.print('No setting found with number.', TextStyle.WARNING)
+            TextPrinter.print('Setting not found.', TextStyle.WARNING)
             time.sleep(.4)
             continue
 
@@ -1083,19 +1113,20 @@ def tasks():
     conn = Utilities.DBstart()
     while True:
         epoch_now = int(time.time())
-        if epoch_now - epoch_last_player >= 3:
-            epoch_last_player = epoch_now
-            try:
-                response = Utilities.fetchAPI('https://map.earthmc.net/tiles/players.json')
-                epoch = int(time.time())
-                for item in response['players']:
-                    Utilities.insertPlayerData(conn, item['name'].lower(), epoch, item['x'], item['z'])
-            except Exception:
-                continue
-        
-        if epoch_now - epoch_last_trade >= 10:
-            epoch_last_trade = epoch_now
-            getTrades(conn)
+        if Utilities.getSetting(conn, 'collect_locations') != False:
+            if epoch_now - epoch_last_player >= 3:
+                epoch_last_player = epoch_now
+                try:
+                    response = Utilities.fetchAPI('https://map.earthmc.net/tiles/players.json')
+                    epoch = int(time.time())
+                    for item in response['players']:
+                        Utilities.insertPlayerData(conn, item['name'].lower(), epoch, item['x'], item['z'])
+                except Exception:
+                    continue
+        if Utilities.getSetting(conn, 'collect_trades') != False:
+            if epoch_now - epoch_last_trade >= 10:
+                epoch_last_trade = epoch_now
+                getTrades(conn)
 
         time.sleep(0.2)
 

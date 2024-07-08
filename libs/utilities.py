@@ -127,12 +127,39 @@ class Utilities:
             )
         ''')
 
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                setting_name TEXT UNIQUE,
+                setting_value BOOLEAN
+            )
+        ''')
+
         c.execute('CREATE INDEX IF NOT EXISTS idx_player_name ON player_balances (player_name)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON player_balances (timestamp)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_trade_player_name ON trade_potentials (player_name)')
 
         conn.commit()
         return conn
+    
+    @staticmethod
+    def setSetting(conn, setting_name, setting_value):
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO settings (setting_name, setting_value)
+            VALUES (?, ?)
+            ON CONFLICT(setting_name) DO UPDATE SET setting_value=excluded.setting_value
+        ''', (setting_name, setting_value))
+        conn.commit()
+
+    @staticmethod
+    def getSetting(conn, setting_name):
+        try:
+            c = conn.cursor()
+            c.execute('SELECT setting_value FROM settings WHERE setting_name=?', (setting_name,))
+            result = c.fetchone()
+            return result[0] if result else None
+        except Exception:
+            return None
 
     @staticmethod
     def addBalance(conn, player_name, balance, timestamp, x=None, z=None):
