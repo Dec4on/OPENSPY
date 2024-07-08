@@ -8,7 +8,7 @@ To keep the data you collected even after updating to a newer version, do not re
 1. Download Python from the Microsoft Store or from https://www.python.org/downloads/ .
 2. Download OPENSPY from Github and place all files in its own folder.
 3. Open the command prompt and navigate to the OPENSPY folder.
-4. Execute this command ``pip install -r requirements.txt``, this will install the necessary libraries.
+4. Command ``pip install requests`` will install the necessary library for OpenSpy to work.
 5. Execute this command after it finished installing ``python main.py``.
 
 # EXE
