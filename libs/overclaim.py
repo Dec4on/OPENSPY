@@ -38,3 +38,33 @@ def getOverclaim(from_nation):
     overclaimable_towns = sorted(overclaimable_towns, key=lambda town: town['stats']['numResidents'], reverse=True)
 
     return overclaimable_towns
+
+@staticmethod
+def getOverclaimTowns(from_town):
+    nation_name = from_town['nation']['name']
+        
+    response = Utilities.fetchAPI('https://api.earthmc.net/v3/aurora/nations')
+
+    nation_list = [nation['name'] for nation in response]
+
+    try:
+        completed_nation_list = []
+        with ThreadPoolExecutor(max_workers=40) as executor:
+            futures = []
+            for i in range(0, len(nation_list), 100):
+                sublist = nation_list[i:i + 100]
+                futures.append(executor.submit(Utilities.fetch_nation_chunk, sublist))
+            for index, future in enumerate(futures):
+                completed_nation_list.extend(future.result())
+
+        enemies = []
+        for nation in completed_nation_list:
+            if nation['enemies']:
+                enemies_temp = [x['name'] for x in nation['enemies']]
+                if nation_name in enemies_temp:
+                    enemies.append(nation['name'])
+
+    except Exception:
+        return None
+
+    return enemies
