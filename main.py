@@ -1534,7 +1534,7 @@ By vncet                                            V{VERSION}
             '/overclaim     Towns that you can steal land from',
             '/online        Online players in town or nation',
             '/fallingin     Towns falling in nation',
-            '/noperm        Towns with build permissions off',
+            '/noperm        Towns with build permissions on',
             '/forsale       For sale towns sorted from low to high',
             "/trades        View player's private trades",
             '/protect       Get notified when player is approaching',
