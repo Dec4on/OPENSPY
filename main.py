@@ -8,7 +8,7 @@ from libs.newday import Newday
 from libs.ruins import Ruins
 from libs.victims import Victims
 from libs.generateExe import Generate
-from libs.overclaim import getOverclaim
+from libs.overclaim import getOverclaim, getOverclaimTowns
 from libs.fallingin import getTownsFallingIn
 from libs.noperm import getNoPerm
 from libs.forsale import getForSaleTowns
@@ -788,74 +788,167 @@ def overclaim():
     while True:
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
-        TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
-        TextPrinter.print('What nation do you want to overclaim from?', TextStyle.ARGUMENT)
+        TextPrinter.print('Overclaim', TextStyle.HEADER)
+        print()
+        TextPrinter.print('- Find towns to overclaim from nation (1)', TextStyle.ARGUMENT)
+        TextPrinter.print('- Find nations to overclaim town from (2)', TextStyle.ARGUMENT)
 
         input = TextPrinter.input().strip()
         if input == '/b':
             return
-        
-        response = Utilities.fetchAPI(f"https://api.earthmc.net/v3/aurora/nations?query={input}")
+        try:
+            selected_setting = int(input)
+        except Exception:
+            TextPrinter.print('Input has to be a number.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
 
-        if response != None:
-            response = response[0]
+        if selected_setting == 1:
+            while True:
+                TextPrinter.clear()
+                TextPrinter.guide("'/b' to go back.")
+                TextPrinter.print('Overclaim', TextStyle.HEADER)
+                TextPrinter.print('What nation do you want to overclaim from?', TextStyle.ARGUMENT)
+
+                input = TextPrinter.input().strip()
+                if input == '/b':
+                    break
+                
+                response = Utilities.fetchAPI(f"https://api.earthmc.net/v3/aurora/nations?query={input}")
+
+                if response != None:
+                    response = response[0]
+                else:
+                    TextPrinter.print('Nation not found.', TextStyle.WARNING)
+                    time.sleep(.4)
+                    continue
+
+                TextPrinter.clear()
+                TextPrinter.guide("'/b' to go back.")
+                TextPrinter.print('Overclaim', TextStyle.HEADER)
+                TextPrinter.print('Loading...', TextStyle.ARGUMENT)
+
+                towns = getOverclaim(response)
+
+                if towns == None:
+                    TextPrinter.print('Please try again later.', TextStyle.WARNING)
+                    time.sleep(.4)
+                    continue
+
+                if towns == []:
+                    TextPrinter.clear()
+                    TextPrinter.guide("'/b' to go back.")
+                    TextPrinter.print('Overclaim', TextStyle.HEADER)
+                    TextPrinter.print('Empty', TextStyle.BOLD)
+                    input = TextPrinter.input().strip()
+                    continue
+
+                page = 1
+                towns_per_page = 10
+                while True:
+                    TextPrinter.clear()
+                    TextPrinter.guide("'/b' to go back.")
+                    TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+                    TextPrinter.print('Overclaim', TextStyle.HEADER)
+
+                    header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
+                    TextPrinter.print(header)
+
+                    for town in towns[(page - 1) * towns_per_page:page * towns_per_page]:
+                        name = town['name'].ljust(20)
+                        num_town_blocks = town['stats']['numTownBlocks']
+                        max_town_blocks = town['stats']['maxTownBlocks']
+                        chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
+                        residents = str(town['stats']['numResidents'])
+                        row = f"{name}{chunks}{' ' * 12}{residents}"
+                        TextPrinter.print(row)
+
+                    input = TextPrinter.input().strip()
+                    if input == '/b':
+                        break
+                    try:
+                        input = int(input)
+
+                    except Exception:
+                        TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                        time.sleep(.4)
+                        continue
+
+                    page = input
+
+        elif selected_setting == 2:
+            while True:
+                TextPrinter.clear()
+                TextPrinter.guide("'/b' to go back.")
+                TextPrinter.print('Overclaim', TextStyle.HEADER)
+                TextPrinter.print('What town do you want to overclaim?', TextStyle.ARGUMENT)
+
+                input = TextPrinter.input().strip()
+                if input == '/b':
+                    break
+                
+                response = Utilities.fetchAPI(f"https://api.earthmc.net/v3/aurora/towns?query={input}")
+
+                if response != None:
+                    response = response[0]
+                else:
+                    TextPrinter.print('Town not found.', TextStyle.WARNING)
+                    time.sleep(.4)
+                    continue
+
+                TextPrinter.clear()
+                TextPrinter.guide("'/b' to go back.")
+                TextPrinter.print('Overclaim', TextStyle.HEADER)
+                TextPrinter.print('Loading...', TextStyle.ARGUMENT)
+
+                towns = getOverclaimTowns(response)
+
+                if towns == None:
+                    TextPrinter.print('Please try again later.', TextStyle.WARNING)
+                    time.sleep(.4)
+                    continue
+
+                if towns == []:
+                    TextPrinter.clear()
+                    TextPrinter.guide("'/b' to go back.")
+                    TextPrinter.print('Overclaim', TextStyle.HEADER)
+                    TextPrinter.print('Empty', TextStyle.BOLD)
+                    input = TextPrinter.input().strip()
+                    continue
+
+                page = 1
+                enemies_per_page = 10
+                while True:
+                    TextPrinter.clear()
+                    TextPrinter.guide("'/b' to go back.")
+                    TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+                    TextPrinter.print('Overclaim', TextStyle.HEADER)
+
+                    town_name = response['name']
+                    TextPrinter.print(f"{town_name}'s Enemies:", TextStyle.BOLD)
+
+                    for town in towns[(page - 1) * enemies_per_page:page * enemies_per_page]:
+                        TextPrinter.print(f"- {town}")
+
+                    input = TextPrinter.input().strip()
+                    if input == '/b':
+                        break
+                    try:
+                        input = int(input)
+
+                    except Exception:
+                        TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                        time.sleep(.4)
+                        continue
+
+                    page = input
+
         else:
-            TextPrinter.print('Nation not found.', TextStyle.WARNING)
+            TextPrinter.print('Option not found.', TextStyle.WARNING)
             time.sleep(.4)
             continue
 
-        TextPrinter.clear()
-        TextPrinter.guide("'/b' to go back.")
-        TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
-        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
 
-        towns = getOverclaim(response)
-
-        if towns == None:
-            TextPrinter.print('Please try again later.', TextStyle.WARNING)
-            time.sleep(.4)
-            continue
-
-        if towns == []:
-            TextPrinter.clear()
-            TextPrinter.guide("'/b' to go back.")
-            TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
-            TextPrinter.print('Empty', TextStyle.BOLD)
-            input = TextPrinter.input().strip()
-            continue
-
-        page = 1
-        towns_per_page = 10
-        while True:
-            TextPrinter.clear()
-            TextPrinter.guide("'/b' to go back.")
-            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
-            TextPrinter.print('Overclaimable Towns', TextStyle.HEADER)
-
-            header = f"{BOLD}Name{' ' * 17}Chunks{' ' * 10}Residents{ENDC}"
-            TextPrinter.print(header)
-
-            for town in towns[(page - 1) * towns_per_page:page * towns_per_page]:
-                name = town['name'].ljust(20)
-                num_town_blocks = town['stats']['numTownBlocks']
-                max_town_blocks = town['stats']['maxTownBlocks']
-                chunks = str(f'{num_town_blocks}/{max_town_blocks}').ljust(8)
-                residents = str(town['stats']['numResidents'])
-                row = f"{name}{chunks}{' ' * 12}{residents}"
-                TextPrinter.print(row)
-
-            input = TextPrinter.input().strip()
-            if input == '/b':
-                break
-            try:
-                input = int(input)
-
-            except Exception:
-                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
-                time.sleep(.4)
-                continue
-
-            page = input
 
 
 def settings():
@@ -941,7 +1034,7 @@ def settings():
             continue
 
         else:
-            TextPrinter.print('Setting not found.', TextStyle.WARNING)
+            TextPrinter.print('Option not found.', TextStyle.WARNING)
             time.sleep(.4)
             continue
 
