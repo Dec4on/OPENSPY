@@ -14,6 +14,8 @@ from libs.noperm import getNoPerm
 from libs.forsale import getForSaleTowns
 from libs.trades import getTrades
 from libs.protect import protectPlayerCheck 
+from libs.trustedin import getTrustedTowns
+from libs.joinnation import getJoinNations
 import math
 import sys
 import subprocess
@@ -1315,6 +1317,137 @@ def protect():
                 break
 
 
+def trustedIn():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Trusted in Towns', TextStyle.HEADER)
+        TextPrinter.print('What is your username?', TextStyle.ARGUMENT)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+        
+        response = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/players?query={input}')
+        if response == None:
+            TextPrinter.print('Player not found.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Trusted in Towns', TextStyle.HEADER)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
+
+        towns = getTrustedTowns(input)
+
+        if towns == None:
+            TextPrinter.print('Please try again later.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        if towns == []:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('Trusted in Towns', TextStyle.HEADER)
+            TextPrinter.print('Empty', TextStyle.BOLD)
+            input = TextPrinter.input().strip()
+            continue
+        
+        page = 1
+        items_per_page = 10
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+            TextPrinter.print('Trusted in Towns', TextStyle.HEADER)
+            print()
+
+            for town in towns[(page - 1) * items_per_page:page * items_per_page]:
+                TextPrinter.print(f'- {town}', TextStyle.ARGUMENT)
+                
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                break
+            try:
+                input = int(input)
+
+            except Exception:
+                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
+
+            page = input
+
+
+def joinNation():
+    while True:
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Join Nation', TextStyle.HEADER)
+        TextPrinter.print('What town?', TextStyle.ARGUMENT)
+
+        input = TextPrinter.input().strip()
+        if input == '/b':
+            return
+        
+        response = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/towns?query={input}')
+        if response == None:
+            TextPrinter.print('Town not found.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        TextPrinter.clear()
+        TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Join Nation', TextStyle.HEADER)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
+
+        nations = getJoinNations(response[0])  
+
+        if nations == None:
+            TextPrinter.print('Please try again later.', TextStyle.WARNING)
+            time.sleep(.4)
+            continue
+
+        if nations == []:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.print('Join Nation', TextStyle.HEADER)
+            TextPrinter.print('Empty', TextStyle.BOLD)
+            input = TextPrinter.input().strip()
+            continue
+
+        page = 1
+        items_per_page = 10
+        while True:
+            TextPrinter.clear()
+            TextPrinter.guide("'/b' to go back.")
+            TextPrinter.guide(f"Type '{page + 1}' for the next page.")
+            TextPrinter.print('Join Nation', TextStyle.HEADER)
+            
+            TextPrinter.print(f"Name{' ' * 17}Distance{' ' * 10}Bonus", TextStyle.BOLD)
+
+            for nation in nations[(page - 1) * items_per_page:page * items_per_page]:
+                name = nation['name'].ljust(20)
+                distance = int(nation['distance'])
+                bonus = nation['nation_bonus']
+                
+                TextPrinter.print(f"{name}{distance}{' ' * 15}{bonus}")
+
+            input = TextPrinter.input().strip()
+            if input == '/b':
+                break
+            try:
+                input = int(input)
+
+            except Exception:
+                TextPrinter.print('Invalid page number.', TextStyle.WARNING)
+                time.sleep(.4)
+                continue
+
+            page = input
+
+
 
 # Available commands
 COMMANDS = {
@@ -1335,7 +1468,9 @@ COMMANDS = {
     'NOPERM': 'noPerm()',
     'FORSALE': 'forSale()',
     'TRADES': 'trades()',
-    'PROTECT': 'protect()'
+    'PROTECT': 'protect()',
+    'TRUSTEDIN': 'trustedIn()',
+    'JOINNATION': 'joinNation()'
 }
 
 
@@ -1403,6 +1538,8 @@ By vncet                                            V{VERSION}
             '/forsale       For sale towns sorted from low to high',
             "/trades        View player's private trades",
             '/protect       Get notified when player is approaching',
+            '/trustedin     Lists towns that have player as trusted',
+            '/joinnation    Best nations to join as town',
             '/settings      OpenSpy settings'
         ]
 
