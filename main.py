@@ -571,13 +571,26 @@ def pirate():
             return
 
 def newday():
+    conn = Utilities.DBstart()
     while True:
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.print('Newday', TextStyle.HEADER)
-        TextPrinter.print('This can take a while...', TextStyle.ARGUMENT)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
 
-        ruined_towns, fallen_towns = Newday.findNewdayTowns()
+        used_cache = False
+        if Utilities.getSetting(conn, 'cache_newday') != False:
+            fallen_cache, fallen_epoch = Utilities.getCache(conn, 'newday_fallen')
+            ruined_cache, ruined_epoch = Utilities.getCache(conn, 'newday_ruined')
+            seconds_remaining = Newday.secondsToNextNewday()
+            newday_epoch = int(time.time()) + seconds_remaining
+            if fallen_cache and ruined_cache:
+                if fallen_epoch < newday_epoch and ruined_epoch < newday_epoch:
+                    ruined_towns, fallen_towns = ruined_cache, fallen_cache
+                    used_cache = True
+
+        if used_cache == False:
+            ruined_towns, fallen_towns = Newday.findNewdayTowns()
 
         if not ruined_towns or not fallen_towns:
             TextPrinter.print('Rate limited, try again in a minute.', TextStyle.WARNING)
@@ -585,6 +598,10 @@ def newday():
             if input == '/b':
                 return
             continue
+
+        if Utilities.getSetting(conn, 'cache_newday') != False:
+            Utilities.setCache(conn, 'newday_fallen', fallen_towns, int(time.time()))
+            Utilities.setCache(conn, 'newday_ruined', ruined_towns, int(time.time()))
 
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
@@ -705,13 +722,24 @@ def goto():
         
         
 def ruins():
+    conn = Utilities.DBstart()
     while True:
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
         TextPrinter.print('Ruins', TextStyle.HEADER)
-        TextPrinter.print('This can take a while...', TextStyle.ARGUMENT)
+        TextPrinter.print('Loading...', TextStyle.ARGUMENT)
 
-        ruined_towns = Ruins.findRuins()
+        used_cache = False
+        if Utilities.getSetting(conn, 'cache_ruins') != False:
+            ruined_cache, ruined_epoch = Utilities.getCache(conn, 'ruins')
+            seconds_remaining = Newday.secondsToNextNewday()
+            newday_epoch = int(time.time()) + seconds_remaining
+            if ruined_cache and ruined_epoch < newday_epoch:
+                ruined_towns = ruined_cache
+                used_cache = True
+
+        if used_cache == False:
+            ruined_towns = Ruins.findRuins()
 
         if not ruined_towns:
             TextPrinter.print('Rate limited, try again in a minute.', TextStyle.WARNING)
@@ -719,6 +747,9 @@ def ruins():
             if input == '/b':
                 return
             continue
+
+        if Utilities.getSetting(conn, 'cache_ruins') != False:
+            Utilities.setCache(conn, 'ruins', ruined_towns, int(time.time()))
         
         page = 1
         towns_per_page = 5
@@ -741,7 +772,7 @@ def ruins():
                 
             input = TextPrinter.input().strip()
             if input == '/b':
-                break
+                return
             try:
                 input = int(input)
 
@@ -846,6 +877,16 @@ def settings():
         else:
             TextPrinter.print(f'- Collect player trades data (3)', TextStyle.RED)
 
+        if Utilities.getSetting(conn, 'cache_newday') != False:
+            TextPrinter.print(f'- Use caching for /newday (4)', TextStyle.GREEN)
+        else:
+            TextPrinter.print(f'- Use caching for /newday (4)', TextStyle.RED)
+
+        if Utilities.getSetting(conn, 'cache_ruins') != False:
+            TextPrinter.print(f'- Use caching for /ruins (5)', TextStyle.GREEN)
+        else:
+            TextPrinter.print(f'- Use caching for /ruins (5)', TextStyle.RED)
+
         input = TextPrinter.input().strip()
         if input == '/b':
             return
@@ -881,6 +922,22 @@ def settings():
                 setting = True
 
             Utilities.setSetting(conn, 'collect_trades', not setting)
+            continue
+
+        elif selected_setting == 4:
+            setting = False
+            if Utilities.getSetting(conn, 'cache_newday') != False:
+                setting = True
+
+            Utilities.setSetting(conn, 'cache_newday', not setting)
+            continue
+
+        elif selected_setting == 5:
+            setting = False
+            if Utilities.getSetting(conn, 'cache_ruins') != False:
+                setting = True
+
+            Utilities.setSetting(conn, 'cache_ruins', not setting)
             continue
 
         else:
