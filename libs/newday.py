@@ -6,8 +6,7 @@ from libs.utilities import Utilities
 
 class Newday:
     @staticmethod
-    def findNewdayTowns():
-        offset = 0
+    def secondsToNextNewday(offset=0):
         ger_now = datetime.now(timezone.utc) + timedelta(hours=2)
 
         if ger_now.hour >= 12:
@@ -17,6 +16,12 @@ class Newday:
 
         time_difference = next_midday - ger_now
         seconds_remaining = int(time_difference.total_seconds())
+        return seconds_remaining
+
+    @staticmethod
+    def findNewdayTowns():
+        offset = 0
+        seconds_remaining = Newday.secondsToNextNewday(offset)
 
         epoch_now = int(time.time())
 
@@ -52,7 +57,10 @@ class Newday:
         
         completed_player_dict = {}
         for res in completed_player_list:
-            completed_player_dict[res['name']] = res
+            try:
+                completed_player_dict[res['name']] = res
+            except Exception:
+                continue
 
         ruined_towns = []
         fallen_towns = []

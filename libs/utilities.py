@@ -134,6 +134,14 @@ class Utilities:
             )
         ''')
 
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS caching (
+                cache_name TEXT UNIQUE,
+                cache_value TEXT,
+                timestamp INTEGER
+            )
+        ''')
+
         c.execute('CREATE INDEX IF NOT EXISTS idx_player_name ON player_balances (player_name)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON player_balances (timestamp)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_trade_player_name ON trade_potentials (player_name)')
@@ -160,6 +168,33 @@ class Utilities:
             return result[0] if result else None
         except Exception:
             return None
+        
+    @staticmethod
+    def setCache(conn, cache_name, cache_value, timestamp):
+        cache_value = json.dumps(cache_value)
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO caching (cache_name, cache_value, timestamp)
+            VALUES (?, ?, ?)
+            ON CONFLICT(cache_name) DO UPDATE SET cache_value=excluded.cache_value, timestamp=excluded.timestamp
+        ''', (cache_name, cache_value, timestamp))
+        conn.commit()
+
+    @staticmethod
+    def getCache(conn, cache_name):
+        try:
+            c = conn.cursor()
+            c.execute('SELECT cache_value, timestamp FROM caching WHERE cache_name=?', (cache_name,))
+            result = c.fetchone()
+            if result:
+                cache_value = json.loads(result[0])
+                timestamp = result[1]
+            else:
+                cache_value = None
+                timestamp = None
+            return cache_value, timestamp
+        except Exception:
+            return None, None
 
     @staticmethod
     def addBalance(conn, player_name, balance, timestamp, x=None, z=None):
