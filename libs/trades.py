@@ -7,6 +7,9 @@ ignore_players = []
 
 def fetch_player_chunk(sublist, max_retries=2, delay=.5):
     global ignore_players
+
+    sublist = [x for x in sublist if x not in ignore_players]
+
     attempt = 0
     while attempt < max_retries:
         try:
