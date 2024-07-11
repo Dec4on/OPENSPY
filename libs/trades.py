@@ -1,6 +1,37 @@
 from concurrent.futures import ThreadPoolExecutor
 import time
 from libs.utilities import Utilities
+import requests
+
+ignore_players = []
+
+def fetch_player_chunk(sublist, max_retries=2, delay=.5):
+    global ignore_players
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            result = ','.join(sublist)
+            player_chunk = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/players?query={result}')
+            if player_chunk is not None:
+                for player in player_chunk:
+                    if player is None:
+                        print(player)
+                return player_chunk
+        except Exception:
+            pass
+        attempt += 1
+        time.sleep(delay)
+    
+    result = []
+    for x in sublist:
+        response = requests.get(f'https://api.earthmc.net/v3/aurora/players?query={x}')
+        if not response:
+            ignore_players.append(x)
+            continue
+        result.append(response.json()[0])
+        
+    return result
+
 
 def getTrades(conn):
     trade_size = 1
@@ -14,9 +45,10 @@ def getTrades(conn):
             futures = []
             for i in range(0, len(player_fetch_list), 100):
                 sublist = player_fetch_list[i:i + 100]
-                futures.append(executor.submit(Utilities.fetch_player_chunk, sublist))        
+                futures.append(executor.submit(fetch_player_chunk, sublist))        
             for future in futures:
-                player_list.extend(future.result())
+                if future.result():
+                    player_list.extend(future.result())
     except Exception:
         return None
 
@@ -59,21 +91,5 @@ def getTrades(conn):
 
         if potentials:
             Utilities.addTradePotential(conn, player['name'], player['profit'], potentials, player['timestamp'], player['difference'], player['x'], player['z'])
-            # print({
-            #     'name': player['name'],
-            #     'profit': player['profit'],
-            #     'potentials': potentials,
-            #     'amount': player['difference']
-            # })
 
     Utilities.purgeBalances(conn)
-
-# epoch_last_trade = int(time.time())
-# conn = Utilities.DBstart()
-
-# while True:
-#     epoch_now = int(time.time())
-#     if epoch_now - epoch_last_trade >= 10:
-#         epoch_last_trade = epoch_now
-#         getTrades(conn)
-#     time.sleep(0.2)
