@@ -5,7 +5,7 @@ import requests
 
 ignore_players = []
 
-def fetch_player_chunk(sublist, max_retries=2, delay=.5):
+def fetch_player_chunk(sublist, max_retries=2, delay=1.5):
     global ignore_players
 
     sublist = [x for x in sublist if x not in ignore_players]
@@ -28,7 +28,7 @@ def fetch_player_chunk(sublist, max_retries=2, delay=.5):
     result = []
     for x in sublist:
         response = requests.get(f'https://api.earthmc.net/v3/aurora/players?query={x}')
-        if not response:
+        if response.status_code == 404:
             ignore_players.append(x)
             continue
         result.append(response.json()[0])

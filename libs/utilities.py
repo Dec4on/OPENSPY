@@ -2,6 +2,7 @@ from datetime import datetime
 import requests
 import sqlite3
 import json
+import time
 
 
 class Utilities:
@@ -249,6 +250,14 @@ class Utilities:
         return trade_potentials
 
     @staticmethod
+    def delBalances(conn):
+        c = conn.cursor()
+        
+        c.execute('DELETE FROM player_balances')
+        
+        conn.commit()
+
+    @staticmethod
     def purgeBalances(conn):
         c = conn.cursor()
         
@@ -265,6 +274,14 @@ class Utilities:
                 for balance_id in balances[2:]:
                     c.execute('DELETE FROM player_balances WHERE id = ?', (balance_id[0],))
         
+        conn.commit()
+
+    @staticmethod
+    def purgeBalance(conn, player_name):
+        c = conn.cursor()
+
+        c.execute('DELETE FROM player_balances WHERE player_name = ?', (player_name,))
+
         conn.commit()
 
     def levenshteinDistance(s1, s2):
@@ -323,3 +340,21 @@ class Utilities:
     def listToString(list):
         result = ', '.join(list)
         return str(result)
+    
+    @staticmethod
+    def timeAgo(epoch_time):
+        current_time = time.time()
+        
+        diff_seconds = int(current_time - epoch_time)
+        
+        if diff_seconds < 60:
+            return f"{diff_seconds} seconds ago"
+        elif diff_seconds < 3600:
+            minutes = diff_seconds // 60
+            return f"{minutes} minutes ago"
+        elif diff_seconds < 86400:
+            hours = diff_seconds // 3600
+            return f"{hours} hours ago"
+        else:
+            days = diff_seconds // 86400
+            return f"{days} days ago"
