@@ -361,10 +361,10 @@ def voteparty():
     while True:
         TextPrinter.clear()
         TextPrinter.guide("'/b' to go back.")
+        TextPrinter.print('Voteparty', TextStyle.HEADER)
 
         response = Utilities.fetchAPI(f'https://api.earthmc.net/v3/aurora/')
         if response != None:
-            TextPrinter.print('Voteparty', TextStyle.HEADER)
             target = response['voteParty']['target']
             numRemaining = target - response['voteParty']['numRemaining']
             TextPrinter.print(f'{numRemaining} / {target}', TextStyle.BOLD)
@@ -504,13 +504,13 @@ def getPlayer():
             if player['title']:
                 print(BOLD + 'Title: ' + ENDC + player['title'])
 
-            if player['town']:
+            if player['town']['name']:
                 if player['status']['isMayor']:
                     print(BOLD + 'Town: ' + ENDC + player['town']['name'] + " (mayor)")
                 else:
                     print(BOLD + 'Town: ' + ENDC + player['town']['name'])
 
-            if player['nation']:
+            if player['nation']['name']:
                 if player['status']['isKing']:
                     print(BOLD + 'Nation: ' + ENDC + player['nation']['name'] + " (king)")
                 else:
@@ -1480,6 +1480,7 @@ def tasks():
     epoch_last_player = int(time.time())
     epoch_last_trade = int(time.time())
     conn = Utilities.DBstart()
+    Utilities.delBalances(conn)
     while True:
         epoch_now = int(time.time())
         if Utilities.getSetting(conn, 'collect_locations') != False:
